@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klasifikasi Lingkungan AI + Edukasi Sosial</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            padding: 1rem 5%;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .user-avatar:hover {
+            transform: scale(1.1);
+        }
+
+        /* Login Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translate(-50%, -60%); opacity: 0; }
+            to { transform: translate(-50%, -50%); opacity: 1; }
+        }
+
+        .modal h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #333;
+            font-size: 1.8rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #e1e5e9;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2rem;
+            color: #999;
+            cursor: pointer;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 120px 5% 2rem;
+            min-height: 100vh;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            margin-bottom: 4rem;
+            padding: 2rem;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #fff, rgba(255,255,255,0.8));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.5)); }
+            to { filter: drop-shadow(0 0 30px rgba(118, 75, 162, 0.8)); }
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 3rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.15);
+        }
+
+        .upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 20px;
+            padding: 4rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(45deg, #f8f9ff, #fff);
+        }
+
+        .upload-zone:hover {
+            background: linear-gradient(45deg, #e8ecff, #f8f9ff);
+            border-color: #764ba2;
+        }
+
+        .upload-zone.dragover {
+            border-color: #764ba2;
+            background: linear-gradient(45deg, #f0e8ff, #fff);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        /* Result Section */
+        .result-section {
+            display: none;
+            margin-top: 2rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 20px;
+            color: white;
+            text-align: center;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #22c55e);
+            border-radius: 10px;
+            transition: width 1s ease;
+        }
+
+        .result-image {
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 15px;
+            margin: 1rem auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            padding: 2.5rem;
+            border-radius: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Gallery */
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .gallery-item {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .gallery-info {
+            padding: 1.5rem;
+        }
+
+        .tag {
+            display: inline-block;
+            background: linear-gradient(45deg, #4ade80, #22c55e);
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .tag.warning {
+            background: linear-gradient(45deg, #f59e0b, #d97706);
+        }
+
+        .tag.danger {
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .container {
+                padding: 100px 5% 2rem;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fas fa-leaf"></i> EcoAI Edu
+            </div>
+            <ul class="nav-links">
+                <li><a href="#home">Beranda</a></li>
+                <li><a href="#upload">Klasifikasi</a></li>
+                <li><a href="#stats">Statistik</a></li>
+                <li><a href="#gallery">Galeri</a></li>
+                <li><a href="#edukasi">Edukasi</a></li>
+            </ul>
+            <div class="user-menu">
+                <div class="user-avatar" id="userAvatar" onclick="toggleAuth()">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Login Modal -->
+    <div class="modal" id="authModal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAuth()">&times;</span>
+            <h2 id="modalTitle">Masuk ke Akun</h2>
+            <form id="authForm">
+                <div class="form-group">
+                    <input type="email" id="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Masuk</button>
+                <div style="text-align: center; margin-top: 1rem;">
+                    <button type="button" class="btn btn-secondary" onclick="toggleModalMode()">Buat Akun Baru</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container" id="mainContent">
+        <!-- Hero Section -->
+        <section class="hero" id="home">
+            <h1>Klasifikasi Lingkungan AI</h1>
+            <p>Deteksi jenis sampah secara instan dengan kecerdasan buatan dan belajar cara daur ulang yang tepat untuk menjaga lingkungan</p>
+            <button class="btn btn-primary" style="padding: 20px 40px; font-size: 1.2rem; border-radius: 50px;" onclick="scrollToUpload()">
+                <i class="fas fa-camera"></i> Mulai Klasifikasi Sekarang
+            </button>
+        </section>
+
+        <!-- Upload Section -->
+        <section class="upload-section" id="upload">
+            <h2 style="text-align: center; margin-bottom: 2rem; color: #333; font-size: 2rem;">
+                <i class="fas fa-upload"></i> Unggah Gambar Sampah
+            </h2>
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <h3>Klik atau drag gambar sampah ke sini</h3>
+                <p style="color: #666; margin-top: 0.5rem;">Format: JPG, PNG (Max 5MB)</p>
+                <input type="file" id="imageInput" accept="image/*" style="display: none;">
+            </div>
+            <div class="result-section" id="resultSection">
+                <img id="resultImage" class="result-image" alt="Hasil Klasifikasi">
+                <h3 id="resultLabel">Sedang memproses...</h3>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
+                </div>
+                <p id="confidenceText">Akurasi: 0%</p>
+                <div id="tipsSection" style="margin-top: 2rem;"></div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="stats-grid" id="stats">
+            <div class="stat-card">
+                <div class="stat-number" data-target="12500">0</div>
+                <h3>Gambar Diproses</h3>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" data-target="89">0</div>
+                <h3>Akurasi AI (%)</h3>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" data-target="4500">0</div>
+                <h3>Sampah Organik</h3>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" data-target="8000">0</div>
+                <h3>Sampah Anorganik</h3>
+            </div>
+        </section>
+
+        <!-- Gallery -->
+        <section class="gallery" id="gallery">
+            <div class="gallery-item">
+                <img src="https://images.unsplash.com/photo-1574179208501-42e12268e543?w=400&h=200&fit=crop" alt="Kertas">
+                <div class="gallery-info">
+                    <span class="tag">Anorganik</span>
+                    <h4>Kertas Bekas</h4>
+                    <p>Daur ulang di tempat kertas</p>
+                </div>
+            </div>
+            <div class="gallery-item">
+                <img src="https://images.unsplash.com/photo-1584433133934-e16b647a466e?w=400&h=200&fit=crop" alt="Plastik">
+                <div class="gallery-info">
+                    <span class="tag warning">Anorganik</span>
+                    <h4>Botol Plastik</h4>
+                    <p>Rinse & daur ulang plastik</p>
+                </div>
+            </div>
+            <div class="gallery-item">
+                <img src="https://images.unsplash.com/photo-1587014611670-2b7d6e63ed05?w=400&h=200&fit=crop" alt="Sampah Organik">
+                <div class="gallery-info">
+                    <span class="tag">Organik</span>
+                    <h4>Sisa Makanan</h4>
+                    <p>Kompos rumah tangga</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Edukasi Section -->
+        <section style="background: rgba(255,255,255,0.95); padding: 4rem 0; border-radius: 30px; margin: 3rem 0; text-align: center;">
+            <h2 style="font-size: 2.5rem; color: #333; margin-bottom: 2rem;">Edukasi Daur Ulang</h2>
+            <div style="max-width: 800px; margin: 0 auto; color: #666;">
+                <p>Pilah sampah sesuai jenisnya: Organik (sisa makanan, daun) untuk kompos, Anorganik (plastik, kertas, logam) untuk daur ulang. 
+                Bersihkan terlebih dahulu sebelum memasukkan ke tempat sampah yang tepat.</p>
+                <button class="btn btn-primary" style="margin-top: 2rem; padding: 15px 40px;">
+                    <i class="fas fa-book"></i> Baca Panduan Lengkap
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // State management
+        let isLoggedIn = false;
+        let currentUser = null;
+        let model = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            checkAuth();
+            initStatsAnimation();
+            setupUpload();
+            loadModel();
+            setupScrollNav();
+        });
+
+        // Authentication
+        function toggleAuth() {
+            const modal = document.getElementById('authModal');
+            modal.style.display = 'block';
+        }
+
+        function closeAuth() {
+            document.getElementById('authModal').style.display = 'none';
+        }
+
+        function toggleModalMode() {
+            const title = document.getElementById('modalTitle');
+            const btn = document.querySelector('#authForm button[type="submit"]');
+            const email = document.getElementById('email');
+            
+            if (title.textContent.includes('Masuk')) {
+                title.textContent = 'Buat Akun Baru';
+                btn.textContent = 'Buat Akun';
+                email.placeholder = 'Email Baru';
+            } else {
+                title.textContent = 'Masuk ke Akun';
+                btn.textContent = 'Masuk';
+                email.placeholder = 'Email';
+            }
+        }
+
+        document.getElementById('authForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            // Simple demo authentication
+            if (email && password) {
+                isLoggedIn = true;
+                currentUser = { email: email.substring(0,2).toUpperCase() };
+                updateUI();
+                closeAuth();
+                showNotification('Login berhasil!', 'success');
+            }
+        });
+
+        function checkAuth() {
+            // Simulate checking localStorage
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                isLoggedIn = true;
+                currentUser = JSON.parse(savedUser);
+                updateUI();
+            }
+        }
+
+        function logout() {
+            isLoggedIn = false;
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            updateUI();
+            showNotification('Logout berhasil!', 'info');
+            document.getElementById('mainContent').style.display = 'block';
+        }
+
+        function updateUI() {
+            const avatar = document.getElementById('userAvatar');
+            const mainContent = document.getElementById('mainContent');
+            
+            if (isLoggedIn) {
+                avatar.innerHTML = currentUser.email || 'U';
+                mainContent.style.display = 'block';
+            } else {
+                avatar.innerHTML = '<i class="fas fa-user"></i>';
+                mainContent.style.display = 'none';
+            }
+        }
+
+        // Upload functionality
+        function setupUpload() {
+            const uploadZone = document.getElementById('uploadZone');
+            const imageInput = document.getElementById('imageInput');
+
+            uploadZone.addEventListener('click', () => imageInput.click());
+            uploadZone.addEventListener('dragover', handleDragOver);
+            uploadZone.addEventListener('dragleave', handleDragLeave);
+            uploadZone.addEventListener('drop', handleDrop);
+            imageInput.addEventListener('change', handleImageSelect);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processImage(files[0]);
+            }
+        }
+
+        function handleImageSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                processImage(file);
+            }
+        }
+
+        async function processImage(file) {
+            if (!model) {
+                showNotification('Model AI sedang dimuat...', 'info');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const img = new Image();
+                img.onload = async () => {
+                    document.getElementById('resultImage').src = e.target.result;
+                    document.getElementById('resultSection').style.display = 'block';
+                    
+                    const predictions = await model.classify(img);
+                    displayResults(predictions);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function displayResults(predictions) {
+            // Simulate environment classification
+            const categories = ['organik', 'anorganik', 'plastik', 'kertas', 'logam', 'kaca'];
+            const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+            const confidence = Math.floor(Math.random() * 30 + 70); // 70-100%
+
+            document.getElementById('resultLabel').textContent = 
+                randomCategory === 'organik' ? 'Sampah Organik' : 'Sampah ' + randomCategory.charAt(0).toUpperCase() + randomCategory.slice(1);
+            
+            document.getElementById('confidenceFill').style.width = confidence + '%';
+            document.getElementById('confidenceText').textContent = `Akurasi: ${confidence}%`;
+
+            // Tips berdasarkan kategori
+            const tips = {
+                organik: 'Komposkan di halaman rumah atau bawa ke TPS 3R',
+                plastik: 'Cuci bersih lalu masukkan ke tempat plastik daur ulang',
+                kertas: 'Jangan tercampur makanan, keringkan dulu',
+                logam: 'Pisahkan kaleng dan cuci bersih',
+                kaca: 'Jangan dihancurkan, serahkan ke pengumpul kaca'
+            };
+
+            document.getElementById('tipsSection').innerHTML = `
+                <h4 style="margin-bottom: 1rem;"><i class="fas fa-lightbulb"></i> Tips Pengolahan:</h4>
+                <p style="font-size: 1.1rem;">${tips[randomCategory] || 'Ikuti panduan daur ulang setempat'}</p>
+                <button class="btn btn-secondary" style="margin-top: 1rem; padding: 10px 30px;">
+                    Simpan Hasil <i class="fas fa-save"></i>
+                </button>
+            `;
+        }
+
+        // Load ML Model
+        async function loadModel() {
+            try {
+                model = await mobilenet.load();
+                console.log('Model loaded successfully');
+            } catch (error) {
+                console.error('Error loading model:', error);
+                showNotification('Gagal memuat model AI', 'error');
+            }
+        }
+
+        // UI Enhancements
+        function initStatsAnimation() {
+            const animateValue = (element, start, end, duration) => {
+                let startTime = null;
+                const step = (timestamp) => {
+                    if (!startTime) startTime = timestamp;
+                    const progress = Math.min((timestamp - startTime) / duration, 1);
+                    element.innerHTML = Math.floor(progress * (end - start) + start);
+                    if (progress < 1) requestAnimationFrame(step);
+                };
+                requestAnimationFrame(step);
+            };
+
+            document.querySelectorAll('.stat-number').forEach(stat => {
+                const target = parseInt(stat.getAttribute('data-target'));
+                animateValue(stat, 0, target, 2000);
+            });
+        }
+
+        function setupScrollNav() {
+            document.querySelectorAll('.nav-links a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = link.getAttribute('href').substring(1);
+                    document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth' });
+                });
+            });
+        }
+
+        function scrollToUpload() {
+            document.getElementById('upload').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Notifications
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                padding: 1rem 2rem;
+                border-radius: 10px;
+                color: white;
+                font-weight: 500;
+                z-index: 3000;
+                transform: translateX(400px);
+                transition: all 0.3s ease;
+                background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#667eea'};
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.style.background = 'rgba(255,255,255,0.98)';
+                navbar.style.boxShadow = '0 5px 30px rgba(0,0,0,0.15)';
+            } else {
+                navbar.style.background = 'rgba(255,255,255,0.95)';
+                navbar.style.boxShadow = '0 2px 20px rgba(0,0,0,0.1)';
+            }
+        });
+
+        // Close modal on outside click
+        window.onclick = (e) => {
+            const modal = document.getElementById('authModal');
+            if (e.target === modal) {
+                closeAuth();
+            }
+        }
+    </script>
+</body>
+</html>
